@@ -10,38 +10,56 @@ class Item:
         return "%s, %s, %s" % (self.name, self.sell_in, self.quality)
 
 
-class GildedRose(object):
+class UpdateStrategy:
+    def update(self, item):
+        item.sell_in -= 1
+        decrease = 2 if item.sell_in < 0 else 1
+        item.quality = max(0, item.quality - decrease)
 
+
+class AgedBrieStrategy(UpdateStrategy):
+    def update(self, item):
+        item.sell_in -= 1
+        increase = 2 if item.sell_in < 0 else 1
+        item.quality = min(50, item.quality + increase)
+
+
+class SulfurasStrategy(UpdateStrategy):
+    def update(self, item):
+        pass
+
+
+class BackstagePassStrategy(UpdateStrategy):
+    def update(self, item):
+        item.sell_in -= 1
+        if item.sell_in < 0:
+            item.quality = 0
+        elif item.sell_in < 5:
+            item.quality = min(50, item.quality + 3)
+        elif item.sell_in < 10:
+            item.quality = min(50, item.quality + 2)
+        else:
+            item.quality = min(50, item.quality + 1)
+
+
+class ConjuredStrategy(UpdateStrategy):
+    def update(self, item):
+        item.sell_in -= 1
+        decrease = 4 if item.sell_in < 0 else 2
+        item.quality = max(0, item.quality - decrease)
+
+
+class GildedRose(object):
     def __init__(self, items):
         self.items = items
+        self._strategies = {
+            "Aged Brie": AgedBrieStrategy(),
+            "Sulfuras, Hand of Ragnaros": SulfurasStrategy(),
+            "Backstage passes to a TAFKAL80ETC concert": BackstagePassStrategy(),
+            "Conjured Mana Cake": ConjuredStrategy()
+        }
 
     def update_quality(self):
         for item in self.items:
-            if item.name != "Aged Brie" and item.name != "Backstage passes to a TAFKAL80ETC concert":
-                if item.quality > 0:
-                    if item.name != "Sulfuras, Hand of Ragnaros":
-                        item.quality = item.quality - 1
-            else:
-                if item.quality < 50:
-                    item.quality = item.quality + 1
-                    if item.name == "Backstage passes to a TAFKAL80ETC concert":
-                        if item.sell_in < 11:
-                            if item.quality < 50:
-                                item.quality = item.quality + 1
-                        if item.sell_in < 6:
-                            if item.quality < 50:
-                                item.quality = item.quality + 1
-            if item.name != "Sulfuras, Hand of Ragnaros":
-                item.sell_in = item.sell_in - 1
-            if item.sell_in < 0:
-                if item.name != "Aged Brie":
-                    if item.name != "Backstage passes to a TAFKAL80ETC concert":
-                        if item.quality > 0:
-                            if item.name != "Sulfuras, Hand of Ragnaros":
-                                item.quality = item.quality - 1
-                    else:
-                        item.quality = item.quality - item.quality
-                else:
-                    if item.quality < 50:
-                        item.quality = item.quality + 1
-
+            strategy = self._strategies.get(item.name, UpdateStrategy())
+            strategy.update(item)
